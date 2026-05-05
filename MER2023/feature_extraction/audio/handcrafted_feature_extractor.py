@@ -1,4 +1,4 @@
-# *_*coding:utf-8 *_*
+
 import os
 import time
 import glob
@@ -10,7 +10,6 @@ from tqdm import tqdm
 import concurrent.futures
 from handcrafted_feature_func import OPENSMILE, Librosa
 
-# import config
 import sys
 sys.path.append('../../')
 import config
@@ -50,15 +49,14 @@ class Worker(object):
 
         csv_file = os.path.join(save_dir, f'{vid}.npy')
         if feature_level == 'UTTERANCE':
-            feature = np.array(feature).squeeze() # [C,]
-            if len(feature.shape) != 1: # change [T, C] => [C,]
+            feature = np.array(feature).squeeze() 
+            if len(feature.shape) != 1: 
                 feature = np.mean(feature, axis=0)
             np.save(csv_file, feature)
         else:
             np.save(csv_file, feature)
             
         return audio_file
-
 
     def construct_feature_extractor(self, name):
         if name == 'opensmile':
@@ -81,21 +79,20 @@ class Worker(object):
             del_opensmile_feature_file=True,
             multi_process=False,
         ):
-        # feature extractor
+        
         feature_extractor = self.construct_feature_extractor(feature_extractor)
         tmp_dir = None
         if feature_extractor.name == 'opensmile':
-            # make tmp dir in the current
-            tmp_dir = f'./saved/tmp_dir'  # used to store the feature file output by opensmile
+            
+            tmp_dir = f'./saved/tmp_dir'  
             if os.path.exists(tmp_dir):
                 shutil.rmtree(tmp_dir)
             os.makedirs(tmp_dir)
 
-        # extract features for each audio file
         n_files = len(audio_files)
         start_time = time.time()
         count = 0
-        if multi_process: # using multi process to extract acoustic features for each audio file
+        if multi_process: 
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 tasks = [executor.submit(self.process_one_audio,
                                          audio_file,
@@ -115,7 +112,7 @@ class Worker(object):
                         print('When process "{}", exception "{}" occurred!'.format(audio_file, e))
                     else:
                         print(f'"{audio_file:<50}" done, rate of progress: {100.0 * count / n_files:3.0f}% ({count}/{n_files})')
-        else: # sequentially process [only for test]
+        else: 
             for audio_file in tqdm(audio_files):
                 self.process_one_audio(audio_file, save_dir, tmp_dir, feature_extractor, feature_set, label_interval,
                                        feature_level=feature_level, frame_mode_functionals_param=frame_mode_functionals_param)
@@ -123,10 +120,8 @@ class Worker(object):
         end_time = time.time()
         print('Time used for acoustic feature extraction: {:.1f} s'.format(end_time - start_time))
 
-        # del tmp dir
         if feature_extractor.name == 'opensmile' and del_opensmile_feature_file:
             shutil.rmtree(tmp_dir)
-
 
 if __name__ == '__main__':
 
@@ -147,17 +142,14 @@ if __name__ == '__main__':
 
     print(f'==> Extracting "{feature_set}" using "{feature_extractor}"...')
 
-    # infer label interval for specified tasks from audio_dir
     assert feature_level in ['FRAME', 'UTTERANCE']
     if feature_level == 'FRAME':     label_interval = 50
     if feature_level == 'UTTERANCE': label_interval = 500
     print(f'==> Note: for "{audio_dir}", the label interval is {label_interval}ms.')
 
-    # in: get audios
     audio_files = sorted(glob.glob(os.path.join(audio_dir, '*.wav')))
     print(f'Find total "{len(audio_files)}" audio files.')
 
-    # out: save dir
     dir_name = '%s_%s' %(feature_set, feature_level[:3])
     save_dir = os.path.join(save_dir, dir_name)
     if not os.path.exists(save_dir):

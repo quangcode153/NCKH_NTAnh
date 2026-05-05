@@ -32,13 +32,7 @@ except AttributeError:
     torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
 
 def load_module_2or3(model_name, model_def_path):
-    """Load model definition module in a manner that is compatible with
-    both Python2 and Python3
-    Args:
-        model_name: The name of the model to be loaded
-        model_def_path: The filepath of the module containing the definition
-    Return:
-        The loaded python module."""
+    
     if six.PY3:
         import importlib.util
         spec = importlib.util.spec_from_file_location(model_name, model_def_path)
@@ -53,12 +47,7 @@ def load_module_2or3(model_name, model_def_path):
     return mod
 
 def load_model(model_name, model_dir, pretrained_dir):
-    """Load imoprted PyTorch model by name
-    Args:
-        model_name (str): the name of the model to be loaded
-    Return:
-        nn.Module: the loaded network
-    """
+    
     model_def_path = os.path.join(model_dir, model_name + '.py')
     weights_path = os.path.join(pretrained_dir, model_name + '.pth')
     mod = load_module_2or3(model_name, model_def_path)
@@ -74,7 +63,7 @@ def compose_transforms(meta):
     transform_list = [transforms.Resize(256),
                       transforms.CenterCrop(size=(im_size[0], im_size[1])),
                       transforms.ToTensor()]
-    if meta['std'] == [1, 1, 1]:  # common amongst mcn models
+    if meta['std'] == [1, 1, 1]:  
         transform_list += [lambda x: x * 255.0]
     transform_list.append(normalize)
     return transforms.Compose(transform_list)
@@ -92,9 +81,9 @@ def get_feature(model, layer_name, image):
         my_embedding = torch.zeros([bs, 512, 14, 14])
     elif layer_name == 'pool3':
         my_embedding = torch.zeros([bs, 256, 28, 28])
-    elif layer_name == 'pool5_7x7_s1':  # available
+    elif layer_name == 'pool5_7x7_s1':  
         my_embedding = torch.zeros([bs, 2048, 1, 1])
-    elif layer_name == 'conv5_3_3x3_relu': # available
+    elif layer_name == 'conv5_3_3x3_relu': 
         my_embedding = torch.zeros([bs, 512, 7, 7])
     else:
         raise Exception(f'Error: not supported layer "{layer_name}".')
@@ -127,7 +116,6 @@ def extract(data_loader, model, layer_name):
         features, timestamps = np.array(features), np.array(timestamps)
         return features, timestamps
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run.')
     parser.add_argument('--dataset',       type=str, default=None,        help='input dataset')
@@ -145,25 +133,21 @@ if __name__ == "__main__":
     save_dir = os.path.join(config.PATH_TO_FEATURES[params.dataset], save_name)
     if not os.path.exists(save_dir): os.makedirs(save_dir)
 
-    # load pre-trained model
-    pretrained_dir = os.path.join(config.PATH_TO_PRETRAINED_MODELS, 'ferplus') # directory of pre-trained models
+    pretrained_dir = os.path.join(config.PATH_TO_PRETRAINED_MODELS, 'ferplus') 
     model_dir = './pytorch-benchmarks/model'
     model = load_model(params.model_name, model_dir, pretrained_dir)
     meta = model.meta
     device = torch.device("cuda")
     model = model.to(device)
 
-    # transform
     transform = compose_transforms(meta)
 
-    # extract embedding video by video
     vids = os.listdir(face_dir)
     EMBEDDING_DIM = -1
     print(f'Find total "{len(vids)}" videos.')
     for i, vid in enumerate(vids, 1):
         print(f"Processing video '{vid}' ({i}/{len(vids)})...")
         
-        # forward
         dataset = FaceDataset(vid, face_dir, transform=transform)
         if len(dataset) == 0:
             print("Warning: number of frames of video {} should not be zero.".format(vid))
@@ -175,7 +159,6 @@ if __name__ == "__main__":
                                                       pin_memory=True)
             embeddings, framenames = extract(data_loader, model, params.layer_name)
 
-        # save results
         indexes = np.argsort(framenames)
         embeddings = embeddings[indexes]
         framenames = framenames[indexes]

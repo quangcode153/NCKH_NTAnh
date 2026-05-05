@@ -13,7 +13,6 @@ def evaluate_metrics(ground_truth, predictions, metrics, verbose=True, print_tex
 
     return results
 
-# Test loop
 def evaluate(net, dataloader, device, metrics_valence_arousal=None, metrics_expression=None, metrics_au=None, verbose=True, print_tex=False):
     
     net.eval()
@@ -27,7 +26,6 @@ def evaluate(net, dataloader, device, metrics_valence_arousal=None, metrics_expr
         with torch.no_grad():
             out = net(images)
       
-        #shape_pred = out['heatmap']
         if expression is not None:
             expr = out['expression']
             expr = np.argmax(np.squeeze(expr.cpu().numpy()), axis=1)
@@ -61,11 +59,10 @@ def evaluate(net, dataloader, device, metrics_valence_arousal=None, metrics_expr
                 expression_gts = expression
             
     if metrics_valence_arousal is not None:
-        #Clip the predictions
+        
         valence_pred = np.clip(valence_pred, -1.0,1.0)
         arousal_pred = np.clip(arousal_pred, -1.0,1.0)
 
-        #Squeeze if valence_gts is shape (N,1)
         valence_gts = np.squeeze(valence_gts)
         arousal_gts = np.squeeze(arousal_gts)
 
@@ -84,7 +81,6 @@ def evaluate(net, dataloader, device, metrics_valence_arousal=None, metrics_expr
 
     net.train()    
     
-    #Return the correct amount of parameters depending on the type of evaluation
     if metrics_expression is not None:
         if metrics_valence_arousal is not None:
             return valence_results, arousal_results, acc_expressions
@@ -97,7 +93,6 @@ def evaluate_flip(net, dataloader_no_flip, dataloader_flip, device, metrics_vale
     
     net.eval()
 
-    #Loop without flip
     for index, data in enumerate(dataloader_no_flip):
         images = data['image'].to(device)
         valence = data.get('valence', None)
@@ -106,7 +101,6 @@ def evaluate_flip(net, dataloader_no_flip, dataloader_flip, device, metrics_vale
         with torch.no_grad():
             out = net(images)
       
-        #shape_pred = out['heatmap']
         if expression is not None:
             expr = out['expression']
             expr = np.argmax(np.squeeze(expr.cpu().numpy()), axis=1)
@@ -144,7 +138,6 @@ def evaluate_flip(net, dataloader_no_flip, dataloader_flip, device, metrics_vale
     valence_gts = valence_gts.astype(np.float64)
     arousal_gts = arousal_gts.astype(np.float64)
 
-    #Loop with flip
     n_images = 0
     for index, data in enumerate(dataloader_flip):
         images = data['image'].to(device)
@@ -155,11 +148,6 @@ def evaluate_flip(net, dataloader_no_flip, dataloader_flip, device, metrics_vale
         with torch.no_grad():
             out = net(images)
       
-        #shape_pred = out['heatmap']
-        #if expression is not None:
-        #    expr = out['expression']
-        #    expr = np.argmax(np.squeeze(expr.cpu().numpy()), axis=1)
-
         if metrics_valence_arousal is not None:
             val = out['valence']
             ar = out['arousal']
@@ -173,11 +161,10 @@ def evaluate_flip(net, dataloader_no_flip, dataloader_flip, device, metrics_vale
             n_images += 1
     
     if metrics_valence_arousal is not None:
-        #Clip the predictions
+        
         valence_pred = np.clip(valence_pred, -1.0,1.0)
         arousal_pred = np.clip(arousal_pred, -1.0,1.0)
 
-        #Squeeze if valence_gts is shape (N,1)
         valence_gts = np.squeeze(valence_gts)
         arousal_gts = np.squeeze(arousal_gts)
 
@@ -196,7 +183,6 @@ def evaluate_flip(net, dataloader_no_flip, dataloader_flip, device, metrics_vale
 
     net.train()    
     
-    #Return the correct amount of parameters depending on the type of evaluation
     if metrics_expression is not None:
         if metrics_valence_arousal is not None:
             return valence_results, arousal_results, acc_expressions

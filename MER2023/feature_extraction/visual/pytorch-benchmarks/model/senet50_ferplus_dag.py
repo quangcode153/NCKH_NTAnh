@@ -1,8 +1,6 @@
-# *_*coding:utf-8 *_*
 
 import torch
 import torch.nn as nn
-
 
 class Senet50_ferplus_dag(nn.Module):
 
@@ -528,12 +526,7 @@ class Senet50_ferplus_dag(nn.Module):
         return prediction
 
 def senet50_ferplus_dag(weights_path=None, **kwargs):
-    """
-    load imported model instance
-
-    Args:
-        weights_path (str): If set, loads model weights from the given path
-    """
+    
     model = Senet50_ferplus_dag()
     if weights_path:
         state_dict = torch.load(weights_path)

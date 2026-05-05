@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""This script evaluates imported PyTorch models on the
-ImageNet validation set
-
-e.g.
-python run_imagenet_benchmarks.py --model_subset pt_tpu --gpus 2
-"""
 
 import os
 import argparse
@@ -13,15 +6,11 @@ from imagenet.evaluation import imagenet_benchmark
 from pathlib import Path
 from utils.benchmark_helpers import load_module_2or3
 
-# directory containing imported pytorch models
 MODEL_DIR = os.path.expanduser('~/data/models/pytorch/mcn_imports/')
 
-# imagenet directory
 ILSVRC_DIR = os.path.expanduser('~/data/shared-datasets/ILSVRC2012-pytorch-val')
 
-# results cache directory
 CACHE_DIR = 'res_cache/imagenet'
-
 
 def load_torchvision_model(model_name):
     if 'densenet' in model_name:
@@ -32,7 +21,6 @@ def load_torchvision_model(model_name):
             'std': [0.229, 0.224, 0.225],
             'imageSize': [224, 224]}
     return net
-
 
 def load_tpu_converted_model(model_name, model_def_path, weights_path, **kwargs):
     mod = load_module_2or3(model_name, model_def_path)
@@ -45,16 +33,8 @@ def load_tpu_converted_model(model_name, model_def_path, weights_path, **kwargs)
         'imageSize': [224, 224]}
     return net
 
-
 def load_model(model_name):
-    """Load imoprted PyTorch model by name
-
-    Args:
-        model_name (str): the name of the model to be loaded
-
-    Return:
-        nn.Module: the loaded network
-    """
+    
     if 'tv_' in model_name:
         import ipdb
         ipdb.set_trace()
@@ -67,21 +47,11 @@ def load_model(model_name):
         net = func(weights_path=weights_path)
     return net
 
-
 def run_benchmarks(gpus, refresh, remove_blacklist, workers, no_center_crop,
                    override_meta_imsize, model_subset, tpu_model_dir, tpu_weights_dir):
-    """Run bencmarks for imported models
-
-    Args:
-        gpus (str): comma separated gpu device identifiers
-        refresh (bool): whether to overwrite the results of existing runs
-        remove_blacklist (bool): whether to remove images from the 2014 ILSVRC
-          blacklist from the validation images used in the benchmark
-        workers (int): the number of workers
-    """
+    
     model_loader = load_model
 
-    # Select models (and their batch sizes) to include in the benchmark.
     if model_subset == "all":
         raise NotImplementedError("TODO: update to use config dicts")
         model_list = [
@@ -141,7 +111,6 @@ def run_benchmarks(gpus, refresh, remove_blacklist, workers, no_center_crop,
         model = model_loader(**model_config)
         print('benchmarking {}'.format(model_name))
         imagenet_benchmark(model, batch_size=model_config["batch_size"], **opts)
-
 
 parser = argparse.ArgumentParser(description='Run PyTorch benchmarks.')
 parser.add_argument('--gpus', nargs='?', dest='gpus', help='select gpu device id')

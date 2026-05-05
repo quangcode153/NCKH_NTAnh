@@ -2,13 +2,10 @@
 
 Some scripts for validating models on common benchmarks. Assumes at least Python3 and PyTorch 4.0.
 
-
 ### Supported datasets:
 
 * **ImageNet** (this is essentially just a cut-down version of the [official example](https://github.com/pytorch/examples/tree/master/imagenet))
 * **Fer2013** - A dataset of greyscale faces labelled with emotions.
-
-
 
 ### References
 

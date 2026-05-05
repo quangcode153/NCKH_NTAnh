@@ -1,4 +1,4 @@
-# *_*coding:utf-8 *_*
+
 import os
 import argparse
 import numpy as np
@@ -14,7 +14,6 @@ from emonet.models.emonet import EmoNet
 from dataset import FaceDatasetForEmoNet
 from emonet.data_augmentation import DataAugmentor
 
-# import config
 import sys
 sys.path.append('../../')
 import config
@@ -44,24 +43,21 @@ if __name__ == '__main__':
     save_dir = os.path.join(config.PATH_TO_FEATURES[params.dataset], f'temonet_{params.feature_level[:3]}')
     if not os.path.exists(save_dir): os.makedirs(save_dir)
 
-    # load model
     model = EmoNet().cuda()
     checkpoint_file = os.path.join(config.PATH_TO_PRETRAINED_MODELS, 'emonet/emonet_8.pth')
     checkpoint = torch.load(checkpoint_file)
     pre_trained_dict = {k.replace('module.', ''): v for k,v in checkpoint.items()}
     model.load_state_dict(pre_trained_dict)
 
-    # transform
     augmentor = DataAugmentor(256, 256)
     transform = transforms.Compose([transforms.ToTensor()])
 
-    # extract embedding video by video
     vids = os.listdir(face_dir)
     EMBEDDING_DIM = -1
     print(f'Find total "{len(vids)}" videos.')
     for i, vid in enumerate(vids, 1):
         print(f"Processing video '{vid}' ({i}/{len(vids)})...")
-        # forward
+        
         dataset = FaceDatasetForEmoNet(vid, face_dir, transform=transform, augmentor=augmentor)
         if len(dataset) == 0:
             print("Warning: number of frames of video {} should not be zero.".format(vid))
@@ -70,7 +66,6 @@ if __name__ == '__main__':
             data_loader = torch.utils.data.DataLoader(dataset, batch_size=32, num_workers=4, pin_memory=True)
             embeddings, framenames = extract(data_loader, model)
             
-        # save results
         indexes = np.argsort(framenames)
         embeddings = embeddings[indexes]
         framenames = framenames[indexes]

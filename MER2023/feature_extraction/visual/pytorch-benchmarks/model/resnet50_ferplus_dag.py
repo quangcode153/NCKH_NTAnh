@@ -1,8 +1,6 @@
-# *_*coding:utf-8 *_*
 
 import torch
 import torch.nn as nn
-
 
 class Resnet50_ferplus_dag(nn.Module):
 
@@ -13,7 +11,7 @@ class Resnet50_ferplus_dag(nn.Module):
                      'imageSize': [224, 224, 3]}
 
         from collections import OrderedDict
-        self.debug_feats = OrderedDict() # only used for feature verification
+        self.debug_feats = OrderedDict() 
         self.conv1_7x7_s2 = nn.Conv2d(3, 64, kernel_size=[7, 7], stride=(2, 2), padding=(3, 3), bias=False)
         self.conv1_7x7_s2_bn = nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.conv1_relu_7x7_s2 = nn.ReLU()
@@ -355,12 +353,7 @@ class Resnet50_ferplus_dag(nn.Module):
         return prediction
 
     def forward_debug(self, data):
-        """ This purpose of this function is to provide an easy debugging
-        utility for the converted network.  Cloning is used to prevent in-place
-        operations from modifying feature artefacts. You can prevent the
-        generation of this function by setting `debug_mode = False` in the
-        importer tool.
-        """
+        
         conv1_7x7_s2 = self.conv1_7x7_s2(data)
         self.debug_feats['conv1_7x7_s2'] = conv1_7x7_s2.clone()
         conv1_7x7_s2_bn = self.conv1_7x7_s2_bn(conv1_7x7_s2)
@@ -715,12 +708,7 @@ class Resnet50_ferplus_dag(nn.Module):
         self.debug_feats['prediction'] = prediction.clone()
 
 def resnet50_ferplus_dag(weights_path=None, **kwargs):
-    """
-    load imported model instance
-
-    Args:
-        weights_path (str): If set, loads model weights from the given path
-    """
+    
     model = Resnet50_ferplus_dag()
     if weights_path:
         state_dict = torch.load(weights_path)

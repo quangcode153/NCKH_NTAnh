@@ -1,8 +1,7 @@
-# coding: utf8
+
 import numpy as np
 import cv2
 from random import randint
-
 
 def get_scale_center(bb):
     
@@ -16,7 +15,6 @@ def inv_mat(mat):
     return ans[:2]
 
 def get_transform(center, scale, res, rot=0):
-    # Generate transformation matrix
     
     h = 200 * scale
     t = np.zeros((3, 3))
@@ -27,14 +25,14 @@ def get_transform(center, scale, res, rot=0):
     t[2, 2] = 1
 
     if not rot == 0:
-        rot = -rot # To match direction of rotation from cropping
+        rot = -rot 
         rot_mat = np.zeros((3,3))
         rot_rad = rot * np.pi / 200
         sn,cs = np.sin(rot_rad), np.cos(rot_rad)
         rot_mat[0,:2] = [cs, -sn]
         rot_mat[1,:2] = [sn, cs]
         rot_mat[2,2] = 1
-        # Need to rotate around center
+        
         t_mat = np.eye(3)
         t_mat[0,2] = -res[1]/2
         t_mat[1,2] = -res[0]/2
@@ -65,56 +63,38 @@ class DataAugmentor(object):
         self.rng = np.random.RandomState(seed=random_seed)
 
     def __call__(self, image, bb=None, shape=None):
-        """
-            If bounding box is None, it assumes that the image is square and already cropped.
-            The center will be the center of the image.
-            Good for AffectNet.
-        """
-        #Checks that image is correct
+        
         assert(image.ndim==3 and image.shape[2]==3)
         assert(image.dtype == np.uint8)
 
         if(bb is None):
-            #Resize the image and the shape
-            scalingFactor = self.target_height/image.shape[0] #Image is square
+            
+            scalingFactor = self.target_height/image.shape[0] 
             image = cv2.resize(image, (self.target_width, self.target_height))
 
-            #Resize the shape
-            # shape *= scalingFactor # me: mute this because it seems that this line does not affect image augmentation!!!
-
-            #######################################
-            #Apply data augmentation : random scaling and rotation
-            #######################################
-
-            #Center is the middle of the image
             center = np.array([image.shape[1]/2, image.shape[0]/2])
 
-            aug_rot = (self.rng.rand() * 2 - 1) * self.random_rotation # in deg.
+            aug_rot = (self.rng.rand() * 2 - 1) * self.random_rotation 
             
-            #Rotation and random scaling
-            scale = self.rng.rand() * self.random_scaling*2 + (1-self.random_scaling) # ex: random_scaling is .25
+            scale = self.rng.rand() * self.random_scaling*2 + (1-self.random_scaling) 
             mat = cv2.getRotationMatrix2D((center[0], center[1]),aug_rot, scale)
             image = cv2.warpAffine(image, mat, (self.target_width, self.target_height))
             
-            #Transforms the shape as well using homogeneous coordinates
             if shape is not None:
                 shape = np.dot(np.concatenate((shape, shape[:, 0:1]*0+1), axis=1), mat.T)
             
             if self.random_translation!=0:
-                dx = self.rng.randint(-self.random_translation * scale, self.random_translation * scale) # in px
+                dx = self.rng.randint(-self.random_translation * scale, self.random_translation * scale) 
                 dy = self.rng.randint(-self.random_translation * scale, self.random_translation * scale)
             else:
                 dx, dy = 0, 0
             
-            #Translation
             mat = np.float32([[1,0, dx],[0,1, dy]])
             image = cv2.warpAffine(image, mat, (self.target_width, self.target_height))
             
-            #Transforms the shape as well using homogeneous coordinates
             if shape is not None:
                 shape = np.dot(np.concatenate((shape, shape[:, 0:1]*0+1), axis=1), mat.T)
 
-            # Flip
             if np.random.randint(round(1.0/self.flipping_probability)) == 0 and self.mirror:
                 image = image[:, ::-1]
                 if shape is not None and shape.shape[0]==68:
@@ -122,16 +102,15 @@ class DataAugmentor(object):
 
                 shape[:, 0] = self.target_width - shape[:, 0]
 
-
         else:
             scale, center = get_scale_center(bb)
 
-            aug_rot = (self.rng.rand() * 2 - 1) * self.random_rotation # in deg.
-            aug_scale = self.rng.rand() * self.random_scaling*2 + (1-self.random_scaling) # ex: random_scaling is .25
+            aug_rot = (self.rng.rand() * 2 - 1) * self.random_rotation 
+            aug_scale = self.rng.rand() * self.random_scaling*2 + (1-self.random_scaling) 
             scale *= aug_scale
 
             if self.random_translation!=0:
-                dx = self.rng.randint(-self.random_translation * scale, self.random_translation * scale)/center[0] # in px
+                dx = self.rng.randint(-self.random_translation * scale, self.random_translation * scale)/center[0] 
                 dy = self.rng.randint(-self.random_translation * scale, self.random_translation * scale)/center[1]
             else:
                 dx, dy = 0, 0
@@ -139,13 +118,12 @@ class DataAugmentor(object):
             center[1] += dy * center[1]
 
             mat = get_transform(center, scale, (self.target_width, self.target_height), aug_rot)[:2]
-            image = cv2.warpAffine(image, mat, (self.target_width, self.target_height))#, borderMode= cv2.BORDER_WRAP)
+            image = cv2.warpAffine(image, mat, (self.target_width, self.target_height))
 
             if shape is not None:
                 mat_pts = get_transform(center, scale, (self.target_width, self.target_height), aug_rot)[:2]
                 shape = np.dot(np.concatenate((shape, shape[:, 0:1]*0+1), axis=1), mat_pts.T)
 
-            # Flip
             if np.random.randint(round(1.0/self.flipping_probability)) == 0 and self.mirror:
                 image = image[:, ::-1]
                 if shape is not None and shape.shape[0]==68:
@@ -154,7 +132,6 @@ class DataAugmentor(object):
                     shape[:, 0] = self.target_width - shape[:, 0]
 
         return image, shape
-
 
 if __name__ == "__main__":
     import skimage.io as io

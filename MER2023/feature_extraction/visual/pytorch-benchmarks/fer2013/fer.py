@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""Fer2013 benchmark
-
-The module evaluates the performance of a pytorch model on the FER2013
-benchmark.
-"""
 
 from __future__ import division
 
@@ -19,7 +13,7 @@ from utils.benchmark_helpers import compose_transforms
 
 def fer2013_benchmark(model, data_dir, res_cache, refresh_cache,
                        batch_size=256, num_workers=2, fer_plus=False):
-    if not refresh_cache: # load result from cache, if available
+    if not refresh_cache: 
         if os.path.isfile(res_cache):
             res = torch.load(res_cache)
             prec1_val, prec1_test = res['prec1_val'], res['prec1_test']
@@ -57,9 +51,9 @@ def validate(val_loader, model, mode):
     end = time.time()
     with torch.no_grad():
         for ii, (ims, target) in enumerate(val_loader):
-            # target = target.cuda(async=True)
+            
             target = target.cuda()
-            output = model(ims) # compute output
+            output = model(ims) 
             prec1, = accuracy(output.data, target, topk=(1,))
             top1.update(prec1[0], ims.size(0))
             speed.update(time.time() - end, ims.size(0))
@@ -73,13 +67,7 @@ def validate(val_loader, model, mode):
     return top1.avg, speed.avg
 
 class WarmupAverageMeter(object):
-    """Computes and stores the average and current value, after a fixed
-    warmup period (useful for approximate benchmarking)
-
-    Args:
-        warmup (int) [3]: The number of updates to be ignored before the
-        average starts to be computed.
-    """
+    
     def __init__(self, warmup=3):
         self.reset()
         self.warmup = warmup
@@ -100,7 +88,7 @@ class WarmupAverageMeter(object):
             self.avg = self.count / self.delta_sum
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    
     def __init__(self):
         self.reset()
 
@@ -117,7 +105,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
+    
     maxk = max(topk)
     batch_size = target.size(0)
     output = output.squeeze(-1).squeeze(-1)

@@ -1,4 +1,4 @@
-# *_*coding:utf-8 *_*
+
 import os
 import argparse
 import numpy as np
@@ -10,13 +10,11 @@ from torchvision import transforms
 import torchvision.models as models
 import torch.utils.data as data
 
-# import config
 import sys
 sys.path.append('../../')
 import config
 from dataset import FaceDataset
 
-############## RESNET ##############
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -60,12 +58,10 @@ class BasicBlock(nn.Module):
         x = self.relu(x)
         return x
     
-    
 class ResNet(nn.Module):
     def __init__(self, block, n_blocks, channels, output_dim):
         super().__init__()
                 
-        
         self.in_channels = channels[0]
             
         assert len(n_blocks) == len(channels) == 4
@@ -119,7 +115,6 @@ class ResNet(nn.Module):
         
         return x, h
 
-
 def extract(data_loader, model):
     model.eval()
     with torch.no_grad():
@@ -127,12 +122,11 @@ def extract(data_loader, model):
         for images, names in data_loader:
             images = images.cuda()
             embedding = model(images)
-            embedding = embedding.squeeze() # [32, 512, 1, 1] => [32, 512]
+            embedding = embedding.squeeze() 
             features.append(embedding.cpu().detach().numpy())
             timestamps.extend(names)
         features, timestamps = np.row_stack(features), np.array(timestamps)
         return features, timestamps
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run.')
@@ -147,7 +141,6 @@ if __name__ == '__main__':
     save_dir = os.path.join(config.PATH_TO_FEATURES[params.dataset], f'msceleb_{params.feature_level[:3]}')
     if not os.path.exists(save_dir): os.makedirs(save_dir)
 
-    # load model
     checkpoint_file = os.path.join(config.PATH_TO_PRETRAINED_MODELS, 'msceleb/resnet18_msceleb.pth')
     model = ResNet(block=BasicBlock, n_blocks=[2, 2, 2, 2], channels=[64, 128, 256, 512], output_dim=1000)
     msceleb_model = torch.load(checkpoint_file)
@@ -155,19 +148,16 @@ if __name__ == '__main__':
     model = model.cuda()
     model = nn.Sequential(*list(model.children())[:-1])
 
-    # transform
     transform = transforms.Compose([transforms.Resize((224, 224)),
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    # extract embedding video by video
     vids = os.listdir(face_dir)
     EMBEDDING_DIM = -1
     print(f'Find total "{len(vids)}" videos.')
     for i, vid in enumerate(vids, 1):
         print(f"Processing video '{vid}' ({i}/{len(vids)})...")
 
-        # forward
         dataset = FaceDataset(vid, face_dir, transform=transform)
         if len(dataset) == 0:
             print("Warning: number of frames of video {} should not be zero.".format(vid))
@@ -179,7 +169,6 @@ if __name__ == '__main__':
                                                       pin_memory=True)
             embeddings, framenames = extract(data_loader, model)
 
-        # save results
         indexes = np.argsort(framenames)
         embeddings = embeddings[indexes]
         framenames = framenames[indexes]

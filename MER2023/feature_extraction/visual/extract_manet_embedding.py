@@ -9,7 +9,6 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 
-# import config
 import sys
 sys.path.append('../../')
 import config
@@ -17,16 +16,15 @@ from dataset import FaceDataset
 from manet.model.manet import manet
 
 class RecorderMeter(object):
-    """Computes and stores the minimum loss value and its epoch index"""
-
+    
     def __init__(self, total_epoch):
         self.reset(total_epoch)
 
     def reset(self, total_epoch):
         self.total_epoch = total_epoch
         self.current_epoch = 0
-        self.epoch_losses = np.zeros((self.total_epoch, 2), dtype=np.float32)    # [epoch, train/val]
-        self.epoch_accuracy = np.zeros((self.total_epoch, 2), dtype=np.float32)  # [epoch, train/val]
+        self.epoch_losses = np.zeros((self.total_epoch, 2), dtype=np.float32)    
+        self.epoch_accuracy = np.zeros((self.total_epoch, 2), dtype=np.float32)  
 
     def update(self, idx, train_loss, train_acc, val_loss, val_acc):
         self.epoch_losses[idx, 0] = train_loss * 30
@@ -44,7 +42,7 @@ class RecorderMeter(object):
         figsize = width / float(dpi), height / float(dpi)
 
         fig = plt.figure(figsize=figsize)
-        x_axis = np.array([i for i in range(self.total_epoch)])  # epochs
+        x_axis = np.array([i for i in range(self.total_epoch)])  
         y_axis = np.zeros(self.total_epoch)
 
         plt.xlim(0, self.total_epoch)
@@ -104,25 +102,21 @@ if __name__ == '__main__':
     save_dir = os.path.join(config.PATH_TO_FEATURES[params.dataset], f'manet_{params.feature_level[:3]}')
     if not os.path.exists(save_dir): os.makedirs(save_dir)
 
-    # load model
     model = manet(num_classes=7).cuda()
     checkpoint_file = os.path.join(config.PATH_TO_PRETRAINED_MODELS, 'manet/[02-08]-[21-19]-model_best-acc88.33.pth')
     checkpoint = torch.load(checkpoint_file)
     pre_trained_dict = {k.replace('module.', ''): v for k,v in checkpoint['state_dict'].items()}
     model.load_state_dict(pre_trained_dict)
 
-    # transform
     transform = transforms.Compose([transforms.Resize((224, 224)),
                                     transforms.ToTensor()])
 
-    # extract embedding video by video
     vids = os.listdir(face_dir)
     EMBEDDING_DIM = -1
     print(f'Find total "{len(vids)}" videos.')
     for i, vid in enumerate(vids, 1):
         print(f"Processing video '{vid}' ({i}/{len(vids)})...")
 
-        # forward
         dataset = FaceDataset(vid, face_dir, transform=transform)
         if len(dataset) == 0:
             print("Warning: number of frames of video {} should not be zero.".format(vid))
@@ -134,7 +128,6 @@ if __name__ == '__main__':
                                                       pin_memory=True)
             embeddings, framenames = extract(data_loader, model)
 
-        # save results
         indexes = np.argsort(framenames)
         embeddings = embeddings[indexes]
         framenames = framenames[indexes]

@@ -6,7 +6,6 @@ MER 2023: Multi-label Learning, Modality Robustness, and Semi-Supervised Learnin
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellow)](../MER2025/MER2025_Track23/LICENSE) 
 
-
 ## 🛠️ Requirements and Installation
 My Dependencies (We have not tested other envs):
 * CUDA Version == 10.2
@@ -24,17 +23,13 @@ My Dependencies (We have not tested other envs):
 conda env create -f environment.yml
 ```
 
-
 ## :earth_americas: Dataset
 To download the dataset, please fill out an EULA on Hugging Face: https://huggingface.co/datasets/MERChallenge/MER2023. It requires participants to use this dataset only for academic research and not to edit or upload samples to the Internet. The official website is http://merchallenge.cn/.
-
 
 > [**MER 2023: Multi-label Learning, Modality Robustness, and Semi-Supervised Learning**](https://dl.acm.org/doi/pdf/10.1145/3581783.3612836) <br>
 > Zheng Lian, Haiyang Sun, Licai Sun, Jinming Zhao, Ye Liu, Bin Liu, Jiangyan Yi, Meng Wang, Erik Cambria, Guoying Zhao, Björn W. Schuller, Jianhua Tao <br>
 
-
 </p></details>
-
 
 ## 🗝️ Build ./tools folder
 ```bash
@@ -118,7 +113,6 @@ for [test3]        => "report_results_on_test3(label_path, pred_path)"       in 
 
 This project is released under the Apache 2.0 license as found in the LICENSE file.
 The service is a research preview intended for **non-commercial use ONLY**. Please get in touch with us if you find any potential violations.
-
 
 ## 📑 Citation
 

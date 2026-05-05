@@ -43,9 +43,6 @@ emo2idx, idx2emo = {}, {}
 for ii, emo in enumerate(emos): emo2idx[emo] = ii
 for ii, emo in enumerate(emos): idx2emo[ii] = emo
 
-########################################################
-############## multiprocess read features ##############
-########################################################
 def func_read_one(argv=None, feature_root=None, name=None):
 
     feature_root, name = argv
@@ -73,7 +70,6 @@ def func_read_one(argv=None, feature_root=None, name=None):
     
 def read_data_multiprocess(label_path, feature_root, task='emo', data_type='train', debug=False):
 
-    ## gain (names, labels)
     names, labels = [], []
     assert task in  ['emo', 'aro', 'val', 'whole']
     assert data_type in ['train', 'test1', 'test2', 'test3']
@@ -91,13 +87,10 @@ def read_data_multiprocess(label_path, feature_root, task='emo', data_type='trai
             corpus[name]['emo'] = emo2idx[corpus[name]['emo']]
             labels.append(corpus[name])
 
-    ## ============= for debug =============
     if debug: 
         names = names[:100]
         labels = labels[:100]
-    ## =====================================
-
-    ## names => features
+    
     params = []
     for ii, name in tqdm.tqdm(enumerate(names)):
         params.append((feature_root, name))
@@ -107,7 +100,6 @@ def read_data_multiprocess(label_path, feature_root, task='emo', data_type='trai
         features = list(tqdm.tqdm(pool.imap(func_read_one, params), total=len(params)))
     feature_dim = np.array(features).shape[-1]
 
-    ## save (names, features)
     print (f'Input feature {feature_root} ===> dim is {feature_dim}')
     assert len(names) == len(features), f'Error: len(names) != len(features)'
     name2feats, name2labels = {}, {}
@@ -116,10 +108,6 @@ def read_data_multiprocess(label_path, feature_root, task='emo', data_type='trai
         name2labels[names[ii]] = labels[ii]
     return name2feats, name2labels, feature_dim
 
-
-########################################################
-##################### data loader ######################
-########################################################
 class MERDataset(Dataset):
 
     def __init__(self, label_path, audio_root, text_root, video_root, data_type, debug=False):
@@ -145,7 +133,6 @@ class MERDataset(Dataset):
         print (f'audio dimension: {self.adim}; text dimension: {self.tdim}; video dimension: {self.vdim}')
         return self.adim, self.tdim, self.vdim
 
-## for five-fold cross-validation on Train&Val
 def get_loaders(args, config):
     train_dataset = MERDataset(label_path = config.PATH_TO_LABEL[args.train_dataset],
                                audio_root = os.path.join(config.PATH_TO_FEATURES[args.train_dataset], args.audio_feature),
@@ -154,13 +141,11 @@ def get_loaders(args, config):
                                data_type  = 'train',
                                debug      = args.debug)
 
-    # gain indices for cross-validation
     whole_folder = []
     whole_num = len(train_dataset.names)
     indices = np.arange(whole_num)
     random.shuffle(indices)
 
-    # split indices into five-fold
     num_folder = args.num_folder
     each_folder_num = int(whole_num / num_folder)
     for ii in range(num_folder-1):
@@ -171,7 +156,6 @@ def get_loaders(args, config):
     assert len(whole_folder) == num_folder
     assert sum([len(each) for each in whole_folder if 1==1]) == whole_num
 
-    ## split into train/eval
     train_eval_idxs = []
     for ii in range(num_folder):
         eval_idxs = whole_folder[ii]
@@ -180,7 +164,6 @@ def get_loaders(args, config):
             if jj != ii: train_idxs.extend(whole_folder[jj])
         train_eval_idxs.append([train_idxs, eval_idxs])
 
-    ## gain train and eval loaders
     train_loaders = []
     eval_loaders = []
     for ii in range(len(train_eval_idxs)):
@@ -199,7 +182,6 @@ def get_loaders(args, config):
         train_loaders.append(train_loader)
         eval_loaders.append(eval_loader)
 
-
     test_loaders = []
     for test_set in args.test_sets:
         test_dataset = MERDataset(label_path = config.PATH_TO_LABEL[args.test_dataset],
@@ -215,14 +197,9 @@ def get_loaders(args, config):
                                  pin_memory=False)
         test_loaders.append(test_loader)
 
-    ## return loaders
     adim, tdim, vdim = train_dataset.get_featDim()
     return train_loaders, eval_loaders, test_loaders, adim, tdim, vdim
 
-
-########################################################
-##################### build model ######################
-########################################################
 class MLP(nn.Module):
     def __init__(self, input_dim, output_dim1, output_dim2=1, layers='256,128', dropout=0.3):
         super(MLP, self).__init__()
@@ -243,7 +220,6 @@ class MLP(nn.Module):
         emos_out  = self.fc_out_1(features)
         vals_out  = self.fc_out_2(features)
         return features, emos_out, vals_out
-
 
 class Attention(nn.Module):
     def __init__(self, audio_dim, text_dim, video_dim, output_dim1, output_dim2=1, layers='256,128', dropout=0.3):
@@ -273,22 +249,21 @@ class Attention(nn.Module):
         return module
 
     def forward(self, audio_feat, text_feat, video_feat):
-        audio_hidden = self.audio_mlp(audio_feat) # [32, 128]
-        text_hidden  = self.text_mlp(text_feat)   # [32, 128]
-        video_hidden = self.video_mlp(video_feat) # [32, 128]
+        audio_hidden = self.audio_mlp(audio_feat) 
+        text_hidden  = self.text_mlp(text_feat)   
+        video_hidden = self.video_mlp(video_feat) 
 
-        multi_hidden1 = torch.cat([audio_hidden, text_hidden, video_hidden], dim=1) # [32, 384]
+        multi_hidden1 = torch.cat([audio_hidden, text_hidden, video_hidden], dim=1) 
         attention = self.attention_mlp(multi_hidden1)
         attention = self.fc_att(attention)
-        attention = torch.unsqueeze(attention, 2) # [32, 3, 1]
+        attention = torch.unsqueeze(attention, 2) 
 
-        multi_hidden2 = torch.stack([audio_hidden, text_hidden, video_hidden], dim=2) # [32, 128, 3]
+        multi_hidden2 = torch.stack([audio_hidden, text_hidden, video_hidden], dim=2) 
         fused_feat = torch.matmul(multi_hidden2, attention)
-        fused_feat = fused_feat.squeeze() # [32, 128]
+        fused_feat = fused_feat.squeeze() 
         emos_out  = self.fc_out_1(fused_feat)
         vals_out  = self.fc_out_2(fused_feat)
         return fused_feat, emos_out, vals_out
-
 
 class CELoss(nn.Module):
 
@@ -314,10 +289,6 @@ class MSELoss(nn.Module):
         loss = self.loss(pred, target) / len(pred)
         return loss
 
-
-########################################################
-########### main training/testing function #############
-########################################################
 def train_or_eval_model(args, model, reg_loss, cls_loss, dataloader, optimizer=None, train=False):
     
     vidnames = []
@@ -335,13 +306,11 @@ def train_or_eval_model(args, model, reg_loss, cls_loss, dataloader, optimizer=N
         if train:
             optimizer.zero_grad()
         
-        ## analyze dataloader
         audio_feat, text_feat, visual_feat = data[0], data[1], data[2]
         emos, vals = data[3], data[4].float()
         vidnames += data[-1]
         multi_feat = torch.cat([audio_feat, text_feat, visual_feat], dim=1)
         
-        ## add cuda
         emos = emos.cuda()
         vals = vals.cuda()
         audio_feat  = audio_feat.cuda()
@@ -349,7 +318,6 @@ def train_or_eval_model(args, model, reg_loss, cls_loss, dataloader, optimizer=N
         visual_feat = visual_feat.cuda()
         multi_feat  = multi_feat.cuda()
 
-        ## feed-forward process
         if args.model_type == 'mlp':
             features, emos_out, vals_out = model(multi_feat)
         elif args.model_type == 'attention':
@@ -360,7 +328,6 @@ def train_or_eval_model(args, model, reg_loss, cls_loss, dataloader, optimizer=N
         val_labels.append(vals.data.cpu().numpy())
         embeddings.append(features.data.cpu().numpy())
 
-        ## optimize params
         if train:
             loss1 = cls_loss(emos_out, emos)
             loss2 = reg_loss(vals_out, vals)
@@ -368,7 +335,6 @@ def train_or_eval_model(args, model, reg_loss, cls_loss, dataloader, optimizer=N
             loss.backward()
             optimizer.step()
 
-    ## evaluate on discrete labels
     emo_probs  = np.concatenate(emo_probs)
     embeddings = np.concatenate(embeddings)
     emo_labels = np.concatenate(emo_labels)
@@ -376,30 +342,25 @@ def train_or_eval_model(args, model, reg_loss, cls_loss, dataloader, optimizer=N
     emo_accuracy = accuracy_score(emo_labels, emo_preds)
     emo_fscore = f1_score(emo_labels, emo_preds, average='weighted')
 
-    ## evaluate on dimensional labels
     val_preds  = np.concatenate(val_preds)
     val_labels = np.concatenate(val_labels)
     val_mse = mean_squared_error(val_labels, val_preds)
 
     save_results = {}
-    # item1: statistic results
+    
     save_results['val_mse'] = val_mse
     save_results['emo_fscore'] = emo_fscore
     save_results['emo_accuracy'] = emo_accuracy
-    # item2: sample-level results
+    
     save_results['emo_probs'] = emo_probs
     save_results['val_preds'] = val_preds
     save_results['emo_labels'] = emo_labels
     save_results['val_labels'] = val_labels
     save_results['names'] = vidnames
-    # item3: latent embeddings
+    
     if args.savewhole: save_results['embeddings'] = embeddings
     return save_results
 
-
-########################################################
-############# metric and save results ##################
-########################################################
 def overall_metric(emo_fscore, val_mse):
     final_score = emo_fscore - val_mse * 0.25
     return final_score
@@ -418,7 +379,6 @@ def average_folder_results(folder_save, testname):
             if name not in name2preds: name2preds[name] = []
             name2preds[name].append({'emo': emoprob, 'val': valpred})
 
-    ## gain average results
     name2avgpreds = {}
     for name in name2preds:
         preds = np.array(name2preds[name])
@@ -456,7 +416,6 @@ def write_to_csv_pred(name2preds, save_path):
 
 def report_results_on_test1_test2(test_label, test_pred):
 
-    # read target file (few for test3)
     name2label = {}
     df_label = pd.read_csv(test_label)
     for _, row in df_label.iterrows():
@@ -466,7 +425,6 @@ def report_results_on_test1_test2(test_label, test_pred):
         name2label[name] = {'emo': emo2idx[emo], 'val': val}
     print (f'labeled samples: {len(name2label)}')
 
-    # read prediction file (more for test3)
     name2pred = {}
     df_label = pd.read_csv(test_pred)
     for _, row in df_label.iterrows():
@@ -484,7 +442,6 @@ def report_results_on_test1_test2(test_label, test_pred):
         emo_preds.append(name2pred[name]['emo'])
         val_preds.append(name2pred[name]['val'])
 
-    # analyze results
     emo_fscore = f1_score(emo_labels, emo_preds, average='weighted')
     print (f'emo results (weighted f1 score): {emo_fscore:.4f}')
     val_mse = mean_squared_error(val_labels, val_preds)
@@ -493,11 +450,8 @@ def report_results_on_test1_test2(test_label, test_pred):
     print (f'overall metric: {final_metric:.4f}')
     return emo_fscore, val_mse, final_metric
 
-
-## only fscore for test3
 def report_results_on_test3(test_label, test_pred):
 
-    # read target file (few for test3)
     name2label = {}
     df_label = pd.read_csv(test_label)
     for _, row in df_label.iterrows():
@@ -506,7 +460,6 @@ def report_results_on_test3(test_label, test_pred):
         name2label[name] = {'emo': emo2idx[emo]}
     print (f'labeled samples: {len(name2label)}')
 
-    # read prediction file (more for test3)
     name2pred = {}
     df_label = pd.read_csv(test_pred)
     for _, row in df_label.iterrows():
@@ -517,23 +470,20 @@ def report_results_on_test3(test_label, test_pred):
     assert len(name2pred) >= len(name2label)
 
     emo_labels, emo_preds = [], []
-    for name in name2label: # on few for test3
+    for name in name2label: 
         emo_labels.append(name2label[name]['emo'])
         emo_preds.append(name2pred[name]['emo'])
 
-    # analyze results
     emo_fscore = f1_score(emo_labels, emo_preds, average='weighted')
     print (f'emo results (weighted f1 score): {emo_fscore:.4f}')
     return emo_fscore, -100, -100
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    ## Params for input
     parser.add_argument('--dataset', type=str, default=None, help='dataset')
-    parser.add_argument('--train_dataset', type=str, default=None, help='dataset') # for cross-dataset evaluation
-    parser.add_argument('--test_dataset',  type=str, default=None, help='dataset') # for cross-dataset evaluation
+    parser.add_argument('--train_dataset', type=str, default=None, help='dataset') 
+    parser.add_argument('--test_dataset',  type=str, default=None, help='dataset') 
     parser.add_argument('--audio_feature', type=str, default=None, help='audio feature name')
     parser.add_argument('--text_feature', type=str, default=None, help='text feature name')
     parser.add_argument('--video_feature', type=str, default=None, help='video feature name')
@@ -542,13 +492,11 @@ if __name__ == '__main__':
     parser.add_argument('--save_root', type=str, default='./saved', help='save prediction results and models')
     parser.add_argument('--savewhole', action='store_true', default=False, help='whether save latent embeddings')
 
-    ## Params for model
     parser.add_argument('--layers', type=str, default='256,128', help='hidden size in model training')
     parser.add_argument('--n_classes', type=int, default=-1, help='number of classes [defined by args.label_path]')
     parser.add_argument('--num_folder', type=int, default=-1, help='folders for cross-validation [defined by args.dataset]')
     parser.add_argument('--model_type', type=str, default='mlp', help='model type for training [mlp or attention]')
 
-    ## Params for training
     parser.add_argument('--lr', type=float, default=0.0001, metavar='LR', help='learning rate')
     parser.add_argument('--l2', type=float, default=0.00001, metavar='L2', help='L2 regularization weight')
     parser.add_argument('--dropout', type=float, default=0.5, metavar='dropout', help='dropout rate')
@@ -580,12 +528,10 @@ if __name__ == '__main__':
     torch.cuda.set_device(args.gpu)
     print(args)
 
-    
     print (f'====== Reading Data =======')
     train_loaders, eval_loaders, test_loaders, adim, tdim, vdim = get_loaders(args, config)      
     assert len(train_loaders) == args.num_folder, f'Error: folder number'
     assert len(eval_loaders)   == args.num_folder, f'Error: folder number'
-    
     
     print (f'====== Training and Evaluation =======')
     folder_save = []
@@ -626,10 +572,9 @@ if __name__ == '__main__':
 
             store_values = {}
 
-            ## training and validation
             train_results = train_or_eval_model(args, model, reg_loss, cls_loss, train_loader, optimizer=optimizer, train=True)
             eval_results  = train_or_eval_model(args, model, reg_loss, cls_loss, eval_loader,  optimizer=None,      train=False)
-            eval_metric = overall_metric(eval_results['emo_fscore'], eval_results['val_mse']) # bigger -> better
+            eval_metric = overall_metric(eval_results['emo_fscore'], eval_results['val_mse']) 
             eval_metrics.append(eval_metric)
             eval_fscores.append(eval_results['emo_fscore'])
             eval_valmses.append(eval_results['val_mse'])
@@ -638,7 +583,6 @@ if __name__ == '__main__':
             store_values['eval_names']    = eval_results['names']
             print ('epoch:%d; train_fscore:%.4f; eval_metric:%.4f' %(epoch+1, train_results['emo_fscore'], eval_metric))
 
-            ## testing and saving
             for jj, test_loader in enumerate(test_loaders):
                 test_set = args.test_sets[jj]
                 test_results = train_or_eval_model(args, model, reg_loss, cls_loss, test_loader, optimizer=None, train=False)
@@ -658,7 +602,6 @@ if __name__ == '__main__':
         end_time = time.time()
         print (f'>>>>> Finish: training on the {ii+1} folder, duration: {end_time - start_time} >>>>>')
 
-
     print (f'====== Gain predition on test data =======')
     assert len(folder_save)     == args.num_folder
     assert len(folder_evalres)  == args.num_folder
@@ -668,7 +611,6 @@ if __name__ == '__main__':
     if not os.path.exists(save_modelroot): os.makedirs(save_modelroot)
     feature_name = f'{args.audio_feature}+{args.text_feature}+{args.video_feature}'
 
-    ## analyze cv results
     cv_fscore, cv_valmse = np.mean(np.array(folder_evalres), axis=0)
     cv_metric = overall_metric(cv_fscore, cv_valmse)
     res_name = f'f1:{cv_fscore:.4f}_val:{cv_valmse:.4f}_metric:{cv_metric:.4f}'

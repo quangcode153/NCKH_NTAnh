@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-"""Imagenet validation set benchmark
-
-The module evaluates the performance of a pytorch model on the ILSVRC 2012
-validation set.
-
-Based on PyTorch imagenet example:
-    https://github.com/pytorch/examples/tree/master/imagenet
-"""
 
 from __future__ import division
 
@@ -23,11 +14,10 @@ from utils.benchmark_helpers import compose_transforms
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-
 def imagenet_benchmark(model, data_dir, res_cache, refresh_cache, batch_size=256,
                        num_workers=20, remove_blacklist=False, center_crop=True,
                        override_meta_imsize=False):
-    if not refresh_cache:  # load result from cache, if available
+    if not refresh_cache:  
         if os.path.isfile(res_cache):
             res = torch.load(res_cache)
             prec1, prec5, speed = res['prec1'], res['prec5'], res['speed']
@@ -40,7 +30,7 @@ def imagenet_benchmark(model, data_dir, res_cache, refresh_cache, batch_size=256
     meta = model.meta
     cudnn.benchmark = True
 
-    if override_meta_imsize:  # NOTE REMOVE THIS LATER!
+    if override_meta_imsize:  
         import torch.nn as nn
         model.features_8 = nn.AdaptiveAvgPool2d(1)
 
@@ -58,7 +48,6 @@ def imagenet_benchmark(model, data_dir, res_cache, refresh_cache, batch_size=256
     prec1, prec5, speed = validate(val_loader, model)
     torch.save({'prec1': prec1, 'prec5': prec5, 'speed': speed}, res_cache)
 
-
 def validate(val_loader, model):
     model.eval()
     top1 = AverageMeter()
@@ -68,8 +57,8 @@ def validate(val_loader, model):
     with torch.no_grad():
         for ii, (ims, target) in enumerate(val_loader):
             target = target.cuda()
-            # ims_var = torch.autograd.Variable(ims, volatile=True)
-            output = model(ims)  # compute output
+            
+            output = model(ims)  
             prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
             top1.update(prec1[0], ims.size(0))
             top5.update(prec5[0], ims.size(0))
@@ -86,16 +75,8 @@ def validate(val_loader, model):
 
     return top1.avg, top5.avg, speed.avg
 
-
 class WarmupAverageMeter(object):
-    """Computes and stores the average and current value, after a fixed
-    warmup period (useful for approximate benchmarking)
-
-    Args:
-        warmup (int) [3]: The number of updates to be ignored before the
-        average starts to be computed.
-    """
-
+    
     def __init__(self, warmup=3):
         self.reset()
         self.warmup = warmup
@@ -115,10 +96,8 @@ class WarmupAverageMeter(object):
             self.count += n
             self.avg = self.count / self.delta_sum
 
-
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
+    
     def __init__(self):
         self.reset()
 
@@ -134,9 +113,8 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-
 def accuracy(output, target, topk=(1, )):
-    """Computes the precision@k for the specified values of k"""
+    
     maxk = max(topk)
     batch_size = target.size(0)
 

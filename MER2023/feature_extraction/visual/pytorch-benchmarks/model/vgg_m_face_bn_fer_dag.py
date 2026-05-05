@@ -1,8 +1,6 @@
-# *_*coding:utf-8 *_*
 
 import torch
 import torch.nn as nn
-
 
 class Vgg_m_face_bn_fer_dag(nn.Module):
 
@@ -67,12 +65,7 @@ class Vgg_m_face_bn_fer_dag(nn.Module):
         return prediction
 
 def vgg_m_face_bn_fer_dag(weights_path=None, **kwargs):
-    """
-    load imported model instance
-
-    Args:
-        weights_path (str): If set, loads model weights from the given path
-    """
+    
     model = Vgg_m_face_bn_fer_dag()
     if weights_path:
         state_dict = torch.load(weights_path)

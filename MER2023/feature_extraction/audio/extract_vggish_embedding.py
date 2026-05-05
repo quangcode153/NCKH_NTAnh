@@ -1,8 +1,3 @@
-# *_*coding:utf-8 *_*
-"""
-VGGish: https://arxiv.org/abs/1609.09430
-official github repo: https://github.com/tensorflow/models/tree/master/research/audioset/vggish
-"""
 
 import os
 import glob
@@ -13,10 +8,9 @@ import argparse
 from vggish import vggish_input
 from vggish import vggish_params
 from vggish import vggish_slim
-import tensorflow.compat.v1 as tf # version: 1.15.0 (gpu)
+import tensorflow.compat.v1 as tf 
 tf.disable_v2_behavior()
 
-# import config
 import sys
 sys.path.append('../../')
 import config
@@ -37,24 +31,22 @@ def extract(audio_files, save_dir, feature_level, gpu, batch_size=2048):
         for i, audio_file in enumerate(audio_files, 1):
             print(f'Processing "{os.path.basename(audio_file)}" ({i}/{len(audio_files)})...')
             vid = os.path.basename(audio_file)[:-4]
-            samples = vggish_input.wavfile_to_examples(audio_file, label_interval / 1000.0) # (sample_size, height(96), width(64))
+            samples = vggish_input.wavfile_to_examples(audio_file, label_interval / 1000.0) 
             sample_size = samples.shape[0]
 
-            # model inference (max sample size: 6653, will cause OOM. Need to chunk samples.)
             embeddings = []
             num_batches =  int(np.ceil(sample_size / batch_size))
             for i in range(num_batches):
                 examples_batch = samples[i*batch_size:min((i+1)*batch_size, sample_size)]
                 [embedding_batch] = sess.run([embedding_tensor],
                                              feed_dict={features_tensor: examples_batch})
-                embeddings.append(embedding_batch) # [176, 128]
+                embeddings.append(embedding_batch) 
             embeddings = np.row_stack(embeddings)
 
-            # save feature
             csv_file = os.path.join(save_dir, f'{vid}.npy')
             if feature_level == 'UTTERANCE':
-                embeddings = np.array(embeddings).squeeze() # [C,]
-                if len(embeddings.shape) != 1: # change [T, C] => [C,]
+                embeddings = np.array(embeddings).squeeze() 
+                if len(embeddings.shape) != 1: 
                     embeddings = np.mean(embeddings, axis=0)
                 np.save(csv_file, embeddings)
             else:
@@ -62,7 +54,6 @@ def extract(audio_files, save_dir, feature_level, gpu, batch_size=2048):
 
     end_time = time.time()
     print(f'Total time used: {end_time - start_time:.1f}s.')
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run.')
@@ -75,11 +66,9 @@ if __name__ == '__main__':
     audio_dir = config.PATH_TO_RAW_AUDIO[args.dataset]
     save_dir = config.PATH_TO_FEATURES[args.dataset]
 
-    # in: get audios
     audio_files = glob.glob(os.path.join(audio_dir, '*.wav'))
     print(f'Find total "{len(audio_files)}" audio files.')
 
-    # out: check dir
     dir_name = f'vggish_{args.feature_level[:3]}'
     save_dir = os.path.join(save_dir, dir_name)
     if not os.path.exists(save_dir):
@@ -89,5 +78,4 @@ if __name__ == '__main__':
     else:
         raise Exception(f'==> Error: save_dir "{save_dir}" already exists, set overwrite=TRUE if needed!')
 
-    # extract features
     extract(audio_files, save_dir, args.feature_level, args.gpu)

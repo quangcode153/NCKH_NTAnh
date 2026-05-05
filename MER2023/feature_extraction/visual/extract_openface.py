@@ -5,26 +5,25 @@ import argparse
 import numpy as np
 from util import read_hog, read_csv
 
-# import config
 import sys
 sys.path.append('../../')
 import config
 
 def generate_face_faceDir(input_root, save_root):
-    for dir_path in glob.glob(input_root + '/*_aligned'): # 'xx/xx/000100_guest_aligned'
-        frame_names = os.listdir(dir_path) # ['xxx.bmp']
+    for dir_path in glob.glob(input_root + '/*_aligned'): 
+        frame_names = os.listdir(dir_path) 
         assert len(frame_names) <= 1
-        if len(frame_names) == 1: # move frame to face_root
-            frame_path = os.path.join(dir_path, frame_names[0]) # 'xx/xx/000100_guest_aligned/xxx.bmp'
-            name = os.path.basename(dir_path)[:-len('_aligned')] # '000100_guest'
+        if len(frame_names) == 1: 
+            frame_path = os.path.join(dir_path, frame_names[0]) 
+            name = os.path.basename(dir_path)[:-len('_aligned')] 
             save_path = os.path.join(save_root, name + '.bmp')
             shutil.copy(frame_path, save_path)
 
 def generate_face_videoOne(input_root, save_root):
-    for dir_path in glob.glob(input_root + '/*_aligned'): # 'xx/xx/000100_guest_aligned'
-        frame_names = os.listdir(dir_path) # ['xxx.bmp']
+    for dir_path in glob.glob(input_root + '/*_aligned'): 
+        frame_names = os.listdir(dir_path) 
         for ii in range(len(frame_names)):
-            frame_path = os.path.join(dir_path, frame_names[ii]) # 'xx/xx/000100_guest_aligned/xxx.bmp'
+            frame_path = os.path.join(dir_path, frame_names[ii]) 
             frame_name = os.path.basename(frame_path)
             save_path = os.path.join(save_root, frame_name)
             shutil.copy(frame_path, save_path)
@@ -47,16 +46,15 @@ def generate_csv(input_root, save_root, startIdx):
 
 def extract(input_dir, process_type, save_dir, face_dir, hog_dir, pose_dir):
 
-    # process folders
     vids = os.listdir(input_dir)
     print(f'Find total "{len(vids)}" videos.')
     for i, vid in enumerate(vids, 1):
 
-        saveVid = vid ## for folder
-        if vid.endswith('.mp4') or vid.endswith('.avi'): saveVid = vid[:-4] # for mp4 or avi files
+        saveVid = vid 
+        if vid.endswith('.mp4') or vid.endswith('.avi'): saveVid = vid[:-4] 
 
         print(f"Processing video '{vid}' ({i}/{len(vids)})...")
-        input_root = os.path.join(input_dir, vid) # exists
+        input_root = os.path.join(input_dir, vid) 
         save_root  = os.path.join(save_dir, saveVid)
         face_root  = os.path.join(face_dir, saveVid)
         hog_root   = os.path.join(hog_dir, saveVid)
@@ -90,12 +88,10 @@ if __name__ == '__main__':
     
     print(f'==> Extracting openface features...')
 
-    # in: face dir
     dataset = params.dataset
     process_type = params.type
     input_dir = config.PATH_TO_RAW_FACE_Win[dataset]
 
-    # out: feature csv dir
     save_dir = os.path.join(config.PATH_TO_FEATURES_Win[dataset], 'openface_all')
     hog_dir  = os.path.join(config.PATH_TO_FEATURES_Win[dataset], 'openface_hog')
     pose_dir = os.path.join(config.PATH_TO_FEATURES_Win[dataset], 'openface_pose')
@@ -128,7 +124,6 @@ if __name__ == '__main__':
     else:
         raise Exception(f'==> Error: save_dir "{face_dir}" already exists, set overwrite=TRUE if needed!')
 
-    # process
     extract(input_dir, process_type, save_dir, face_dir, hog_dir, pose_dir)
 
     print(f'==> Finish')

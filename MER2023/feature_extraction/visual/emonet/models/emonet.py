@@ -1,8 +1,3 @@
-#########################################################
-#                                                       #
-# Authors: Jean Kossaifi, Antoine Toisoul, Adrian Bulat #
-#                                                       #
-#########################################################
 
 import torch
 import torch.nn as nn
@@ -16,7 +11,6 @@ def conv3x3(in_planes, out_planes, strd=1, padding=1, bias=False):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3,
                      stride=strd, padding=padding, bias=bias)
-
 
 class ConvBlock(nn.Module):
     def __init__(self, in_planes, out_planes):
@@ -106,7 +100,6 @@ class HourGlass(nn.Module):
     def forward(self, x):
         return self._forward(self.depth, x)
 
-
 class EmoNet(nn.Module):
     def __init__(self, num_modules=2, n_expression=8, n_reg=2, n_blocks=4, attention=True, temporal_smoothing=False):
         super(EmoNet, self).__init__()
@@ -120,7 +113,7 @@ class EmoNet(nn.Module):
         if self.temporal_smoothing:
             self.n_temporal_states = 5
             self.init_smoothing = True
-            self.temporal_weights = torch.Tensor([0.1,0.1,0.15,0.25,0.4]).unsqueeze(0).unsqueeze(2).cuda() #Size (1,5,1)
+            self.temporal_weights = torch.Tensor([0.1,0.1,0.15,0.25,0.4]).unsqueeze(0).unsqueeze(2).cuda() 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
         self.bn1 = nn.InstanceNorm2d(64)
         self.conv2 = ConvBlock(64, 128)
@@ -141,15 +134,14 @@ class EmoNet(nn.Module):
                     'bl' + str(hg_module), nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0))
                 self.add_module('al' + str(hg_module), nn.Conv2d(68,
                                                                  256, kernel_size=1, stride=1, padding=0))
-        #Do not optimize the FAN
+        
         for p in self.parameters():
             p.requires_grad = False
 
-
         if self.attention:
-            n_in_features = 256*(num_modules+1) #Heatmap is applied hence no need to have it
+            n_in_features = 256*(num_modules+1) 
         else:
-            n_in_features = 256*(num_modules+1)+68 #68 for the heatmap
+            n_in_features = 256*(num_modules+1)+68 
         
         n_features = [(256, 256)]*(n_blocks)
 
@@ -164,7 +156,6 @@ class EmoNet(nn.Module):
 
     def forward(self, x, reset_smoothing=False, return_embedding=False):
         
-        #Resets the temporal smoothing
         if self.init_smoothing:
             self.init_smoothing = False
             self.temporal_state = torch.zeros(x.size(0), self.n_temporal_states, self.n_expression+self.n_reg).cuda()              
@@ -225,12 +216,10 @@ class EmoNet(nn.Module):
         else:
             return {'heatmap': tmp_out, 'expression': final_features[:,:-2], 'valence': final_features[:,-2], 'arousal':final_features[:,-1]}
 
-  
     def eval(self):
         
         for module in self.children():
             module.eval()
-
 
 if __name__ == "__main__":
     net = EmoNet(n_expression=5)

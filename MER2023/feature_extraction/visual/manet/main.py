@@ -43,14 +43,12 @@ parser.add_argument('--name_prefix', default='', type=str, help='prefix used to 
 args = parser.parse_args()
 print('beta', args.beta)
 
-
 def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     best_acc = 0
 
     print('Training time: ' + now.strftime("%m-%d %H:%M"))
 
-    # create model
     model = manet()
     model = torch.nn.DataParallel(model).cuda()
     if not args.scratch:
@@ -62,13 +60,11 @@ def main():
     model.module.fc_1 = torch.nn.Linear(512, 7).cuda()
     model.module.fc_2 = torch.nn.Linear(512, 7).cuda()
 
-    # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = torch.optim.SGD(model.parameters(),  args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.1)
     recorder = RecorderMeter(args.epochs)
 
-    # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
@@ -84,7 +80,6 @@ def main():
             print("=> no checkpoint found at '{}'".format(args.resume))
     cudnn.benchmark = True
 
-    # Data loading code
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'test')
 
@@ -120,10 +115,8 @@ def main():
         with open(txt_name, 'a') as f:
             f.write('Current learning rate: ' + str(current_learning_rate) + '\n')
 
-        # train for one epoch
         train_acc, train_los = train(train_loader, model, criterion, optimizer, epoch, args)
 
-        # evaluate on validation set
         val_acc, val_los = validate(val_loader, model, criterion, args)
 
         scheduler.step()
@@ -132,7 +125,6 @@ def main():
         curve_name = time_str + 'cnn.png'
         recorder.plot_curve(os.path.join(project_path+'log/', curve_name))
 
-        # remember best acc and save checkpoint
         is_best = val_acc > best_acc
         best_acc = max(val_acc, best_acc)
 
@@ -151,7 +143,6 @@ def main():
         with open(txt_name, 'a') as f:
             f.write(str(epoch_time) + '\n')
 
-
 def train(train_loader, model, criterion, optimizer, epoch, args):
     losses = AverageMeter('Loss', ':.4f')
     top1 = AverageMeter('Accuracy', ':6.3f')
@@ -159,7 +150,6 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
                              [losses, top1],
                              prefix="Epoch: [{}]".format(epoch))
 
-    # switch to train mode
     model.train()
 
     for i, (images, target) in enumerate(train_loader):
@@ -167,27 +157,22 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         images = images.cuda()
         target = target.cuda()
 
-        # compute output
         output1, output2 = model(images)
         output = (args.beta * output1) + ((1-args.beta) * output2)
         loss = (args.beta * criterion(output1, target)) + ((1-args.beta) * criterion(output2, target))
 
-        # measure accuracy and record loss
         acc1, _ = accuracy(output, target, topk=(1, 5))
         losses.update(loss.item(), images.size(0))
         top1.update(acc1[0], images.size(0))
 
-        # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        # print loss and accuracy
         if i % args.print_freq == 0:
             progress.display(i)
 
     return top1.avg, losses.avg
-
 
 def validate(val_loader, model, criterion, args):
     losses = AverageMeter('Loss', ':.4f')
@@ -196,7 +181,6 @@ def validate(val_loader, model, criterion, args):
                              [losses, top1],
                              prefix='Test: ')
 
-    # switch to evaluate mode
     model.eval()
 
     with torch.no_grad():
@@ -204,12 +188,10 @@ def validate(val_loader, model, criterion, args):
             images = images.cuda()
             target = target.cuda()
 
-            # compute output
             output1, output2 = model(images)
             output = (args.beta * output1) + ((1-args.beta) * output2)
             loss = (args.beta * criterion(output1, target)) + ((1 - args.beta) * criterion(output2, target))
 
-            # measure accuracy and record loss
             acc, _ = accuracy(output, target, topk=(1, 5))
             losses.update(loss.item(), images.size(0))
             top1.update(acc[0], images.size(0))
@@ -222,15 +204,13 @@ def validate(val_loader, model, criterion, args):
             f.write(' * Accuracy {top1.avg:.3f}'.format(top1=top1) + '\n')
     return top1.avg, losses.avg
 
-
 def save_checkpoint(state, is_best, args):
     torch.save(state, args.checkpoint_path)
     if is_best:
         shutil.copyfile(args.checkpoint_path, args.best_checkpoint_path)
 
-
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    
     def __init__(self, name, fmt=':f'):
         self.name = name
         self.fmt = fmt
@@ -252,7 +232,6 @@ class AverageMeter(object):
         fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
         return fmtstr.format(**self.__dict__)
 
-
 class ProgressMeter(object):
     def __init__(self, num_batches, meters, prefix=""):
         self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
@@ -273,9 +252,8 @@ class ProgressMeter(object):
         fmt = '{:' + str(num_digits) + 'd}'
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
-
 def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
@@ -288,18 +266,16 @@ def accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
-
 class RecorderMeter(object):
-    """Computes and stores the minimum loss value and its epoch index"""
-
+    
     def __init__(self, total_epoch):
         self.reset(total_epoch)
 
     def reset(self, total_epoch):
         self.total_epoch = total_epoch
         self.current_epoch = 0
-        self.epoch_losses = np.zeros((self.total_epoch, 2), dtype=np.float32)    # [epoch, train/val]
-        self.epoch_accuracy = np.zeros((self.total_epoch, 2), dtype=np.float32)  # [epoch, train/val]
+        self.epoch_losses = np.zeros((self.total_epoch, 2), dtype=np.float32)    
+        self.epoch_accuracy = np.zeros((self.total_epoch, 2), dtype=np.float32)  
 
     def update(self, idx, train_loss, train_acc, val_loss, val_acc):
         self.epoch_losses[idx, 0] = train_loss * 30
@@ -317,7 +293,7 @@ class RecorderMeter(object):
         figsize = width / float(dpi), height / float(dpi)
 
         fig = plt.figure(figsize=figsize)
-        x_axis = np.array([i for i in range(self.total_epoch)])  # epochs
+        x_axis = np.array([i for i in range(self.total_epoch)])  
         y_axis = np.zeros(self.total_epoch)
 
         plt.xlim(0, self.total_epoch)
@@ -351,7 +327,6 @@ class RecorderMeter(object):
             fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
             print('Saved figure')
         plt.close(fig)
-
 
 if __name__ == '__main__':
     main()

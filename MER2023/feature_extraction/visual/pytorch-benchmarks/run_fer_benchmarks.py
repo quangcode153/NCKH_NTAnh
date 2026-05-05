@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-"""This module evaluates imported PyTorch models on fer2013
-"""
 
 import os
 import argparse
@@ -8,22 +5,13 @@ from os.path import join as pjoin
 from fer2013.fer import fer2013_benchmark
 from utils.benchmark_helpers import load_module_2or3
 
-# MODEL_DIR = os.path.expanduser('~/data/models/pytorch/mcn_imports')
-# FER_DIR = os.path.expanduser('~/data/datasets/fer2013+')
 MODEL_DIR = './pretrained/'
 FER_DIR = os.path.expanduser('~/Affective Computing/Dataset/FERPlus')
 
 CACHE_DIR = 'res_cache/fer2013+'
 
 def load_model(model_name):
-    """Load imoprted PyTorch model by name
-
-    Args:
-        model_name (str): the name of the model to be loaded
-
-    Return:
-        nn.Module: the loaded network
-    """
+    
     model_def_path = pjoin('model', model_name + '.py')
     weights_path = pjoin(MODEL_DIR, model_name + '.pth')
     mod = load_module_2or3(model_name, model_def_path)
@@ -32,16 +20,7 @@ def load_model(model_name):
     return net
 
 def run_benchmarks(gpus, refresh, fer_plus):
-    """Run bencmarks for imported models
-
-    Args:
-        gpus (str): comma separated gpu device identifiers
-        refresh (bool): whether to overwrite the results of existing runs
-        fer_plus (bool): whether to evaluate on the ferplus benchmark,
-          rather than the standard fer benchmark.
-    """
-
-    # Select models (and their batch sizes) to include in the benchmark.
+    
     if fer_plus:
         model_list = [
             ('resnet50_ferplus_dag', 32),

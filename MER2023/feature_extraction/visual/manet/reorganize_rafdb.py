@@ -3,10 +3,9 @@ import glob
 import pandas as pd
 import shutil
 
-
 rafdb_path = '/data1/sunlicai/Affective Computing/Dataset/RAF-DB/basic'
 src_path = os.path.join(rafdb_path, 'Image/aligned')
-tgt_path = os.path.join(rafdb_path, 'Image/aligned_c') # split/class_id/img_file
+tgt_path = os.path.join(rafdb_path, 'Image/aligned_c') 
 label_file = os.path.join(rafdb_path, 'EmoLabel/list_patition_label.txt')
 df = pd.read_csv(label_file, header=None, delimiter=' ')
 file_names, label_ids = df[0].values, df[1].values

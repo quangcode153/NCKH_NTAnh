@@ -1,10 +1,9 @@
-# *_*coding:utf-8 *_*
+
 import os
 import glob
 from PIL import Image
 from skimage import io
 import torch.utils.data as data
-
 
 class FaceDataset(data.Dataset):
     def __init__(self, vid, face_dir, transform=None):
@@ -28,7 +27,6 @@ class FaceDataset(data.Dataset):
             img = self.transform(img)
         name = os.path.basename(path)[:-4]
         return img, name
-
 
 class FaceDatasetForEmoNet(data.Dataset):
     def __init__(self, vid, face_dir, transform=None, augmentor=None):

@@ -21,8 +21,6 @@ class AffectNet(Dataset):
         self.transform_image = transform_image
         self.verbose = verbose
 
-        #if cleaned_set and (subset not in ['test', 'val']):
-        #    raise ValueError('cleaned_set can only be set to True for the val or test set, train has not been cleaned')
         self.cleaned_set = cleaned_set
 
         if n_expression not in [5, 8]:
@@ -34,10 +32,9 @@ class AffectNet(Dataset):
             data = pickle.load(f)
         self.data = data
 
-        # the keys are the image names (name.ext)
         self.keys = []
         self.skipped = {'other':[], 'pt_pt_error':[], 'expression':[], 'cleaned':[]}
-        # List of each expression to generate weights
+        
         expressions = []
         for key, value in data.items():
             if key == 'folder':
@@ -51,7 +48,7 @@ class AffectNet(Dataset):
 
             expression = int(value['expression'])
             if self.cleaned_set:
-                #Automatic cleaning : expression has to match the valence and arousal values
+                
                 valence = float(value['valence'])
                 arousal = float(value['arousal'])
                 intensity = math.sqrt(valence**2+arousal**2)
@@ -122,9 +119,9 @@ class AffectNet(Dataset):
         if self.transform_image_shape is not None:
             bounding_box = [landmarks.min(axis=0)[0], landmarks.min(axis=0)[1],
                             landmarks.max(axis=0)[0], landmarks.max(axis=0)[1]]
-            #image, landmarks = self.transform_image_shape(image, shape=landmarks)
+            
             image, landmarks = self.transform_image_shape(image, bb=bounding_box)
-            # Fix for PyTorch currently not supporting negative stric
+            
             image = np.ascontiguousarray(image)
 
         if self.transform_image is not None:

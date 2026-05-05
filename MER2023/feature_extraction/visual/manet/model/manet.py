@@ -1,16 +1,13 @@
 from manet.model.attention import *
 
-
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
-    """3x3 convolution with padding"""
+    
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=dilation, groups=groups, bias=False, dilation=dilation)
 
-
 def conv1x1(in_planes, out_planes, stride=1):
-    """1x1 convolution"""
+    
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-
 
 class BasicBlock(nn.Module):
     __constants__ = ['downsample']
@@ -42,7 +39,6 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
-
 
 class MulScaleBlock(nn.Module):
     __constants__ = ['downsample']
@@ -88,7 +84,6 @@ class MulScaleBlock(nn.Module):
 
         sp_x = torch.split(out, self.scale_width, 1)
 
-        ##########################################################
         out_1_1 = self.conv1_2_1(sp_x[0])
         out_1_1 = self.bn1_2_1(out_1_1)
         out_1_1_relu = self.relu(out_1_1)
@@ -125,7 +120,6 @@ class MulScaleBlock(nn.Module):
 
         return out
 
-
 class AttentionBlock(nn.Module):
     __constants__ = ['downsample']
 
@@ -161,7 +155,6 @@ class AttentionBlock(nn.Module):
 
         return out
 
-
 class MANet(nn.Module):
 
     def __init__(self, block_b, block_m, block_a, layers, num_classes=12666):
@@ -176,7 +169,6 @@ class MANet(nn.Module):
         self.layer1 = self._make_layer(block_b, 64, 64, layers[0])
         self.layer2 = self._make_layer(block_b, 64, 128, layers[1], stride=2)
 
-        # In this branch, each BasicBlock replaced by AttentiveBlock.
         self.layer3_1_p1 = self._make_layer(block_a, 128, 256, layers[2], stride=2)
         self.layer4_1_p1 = self._make_layer(block_a, 256, 512, layers[3], stride=1)
 
@@ -189,7 +181,6 @@ class MANet(nn.Module):
         self.layer3_1_p4 = self._make_layer(block_a, 128, 256, layers[2], stride=2)
         self.layer4_1_p4 = self._make_layer(block_a, 256, 512, layers[3], stride=1)
 
-        # In this branch, each BasicBlock replaced by MulScaleBlock.
         self.layer3_2 = self._make_layer(block_m, 128, 256, layers[2], stride=2)
         self.layer4_2 = self._make_layer(block_m, 256, 512, layers[3], stride=2)
 
@@ -227,7 +218,6 @@ class MANet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
 
-        # branch 1 ############################################
         patch_11 = x[:, :, 0:14, 0:14]
         patch_12 = x[:, :, 0:14, 14:28]
         patch_21 = x[:, :, 14:28, 0:14]
@@ -253,7 +243,6 @@ class MANet(nn.Module):
         branch_1_out_embedding = torch.flatten(branch_1_out, 1)
         branch_1_out = self.fc_1(branch_1_out_embedding)
 
-        # branch 2 ############################################
         branch_2_out = self.layer3_2(x)
         branch_2_out = self.layer4_2(branch_2_out)
         branch_2_out = self.avgpool(branch_2_out)
@@ -268,14 +257,12 @@ class MANet(nn.Module):
     def forward(self, x, return_embedding=False):
         return self._forward_impl(x, return_embedding)
 
-
 def manet(**kwargs):
     return MANet(block_b=BasicBlock, block_m=MulScaleBlock, block_a=AttentionBlock, layers=[2, 2, 2, 2], **kwargs)
 
 if __name__ == "__main__":
     model = manet()
-    # print(sum(param.numel() for param in model.parameters()) / 1e6)
-    # print(model)
+    
     import torch
     x = torch.rand(1,3,224,224)
     y = model(x)
